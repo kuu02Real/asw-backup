@@ -1,0 +1,1515 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: TincGana
+  description: "This is the Open API documentation for the REST API of our web application **TincGana** deployed at <https://tincgana-production.up.railway.app/>. <br>All operations are executable. Some operations requires authentication: `createPost`, `deletePost`, `editUser`, `createComment`, `deleteComment`. In this case, you must **Authorize** your request by providing the token value you got when you created the user."
+servers:
+  - url: 'http://127.0.0.1:8000/api'
+paths:
+  /posts:
+    get:
+      tags:
+        - posts
+      summary: Obté la llista de tots els posts
+      operationId: getAllPosts
+      parameters:
+        - name: sort
+          in: query
+          description: Ordena els posts (old, new, popular)
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+    post:
+      tags:
+        - posts
+      summary: Crea un nou post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Títol del post
+                content:
+                  type: string
+                  description: Contingut del post
+                url:
+                  type: string
+                  format: url
+                  description: URL opcional del post
+                community_id:
+                  type: integer
+                  description: ID de la comunitat a la qual està associat el post
+      responses:
+        '201':
+          description: Post creat amb èxit
+          content:
+            application/json:
+              example:
+                message: Post creat amb èxit
+                post:
+                  id: 1
+                  title: Títol del post
+                  content: Contingut del post
+                  url: http://example.com
+                  community_id: 1
+        '422':
+          description: Dades de sol·licitud no vàlides
+          content:
+            application/json:
+              example:
+                errors:
+                  title: ["El camp títol és obligatori."]
+                  content: ["El camp contingut és obligatori."]
+                  community_id: ["La comunitat seleccionada no és vàlida."]
+  /posts/{post_id}:
+    get:
+      tags:
+        - posts
+      summary: Finds a Post by its ID
+      description: Returns a single Post
+      operationId: getPostById
+      parameters:
+        - name: post_id
+          in: path
+          description: ID of Post to return
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+    put:
+      tags:
+        - posts
+      summary: Actualitza un post existent
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: ID del post a actualitzar
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Títol del post
+                content:
+                  type: string
+                  description: Contingut del post
+                url:
+                  type: string
+                  format: url
+                  description: URL opcional del post
+                community_id:
+                  type: integer
+                  description: ID de la comunitat a la qual està associat el post
+      responses:
+        '200':
+          description: Post actualitzat amb èxit
+          content:
+            application/json:
+              example:
+                message: Post actualitzat amb èxit
+                post:
+                  id: 1
+                  title: Nou títol del post
+                  content: Nou contingut del post
+                  url: http://nouexemple.com
+                  community_id: 2
+        '404':
+          description: Post no trobat
+          content:
+            application/json:
+              example:
+                error: Post no trobat amb l'ID proporcionat
+      security:
+        - ApiKeyAuth: []
+    delete:
+      tags:
+        - posts
+      summary: Esborra un post existent
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: ID del post a esborrar
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Post esborrat amb èxit
+        '404':
+          description: Post no trobat
+          content:
+            application/json:
+              example:
+                error: Post no trobat amb l'ID proporcionat
+      security:
+        - ApiKeyAuth: []
+
+  /posts/subscribed:
+    get:
+      tags:
+        - posts
+      summary: Get the posts of all the communities the user belongs to
+      operationId: getPostsSubscribed
+      parameters:
+        - name: sort
+          in: query
+          description: Ordena els posts (old, new, popular)
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Unauthorized
+      security:
+        - ApiKeyAuth: [ ]
+
+  /posts/{post_id}/comments:
+    get:
+      tags:
+        - posts
+        - comments
+      summary: Finds the Comments to the Post identified by post_id
+      description: Returns all the Comments that belong to the post
+      operationId: getPostComments
+      parameters:
+        - name: post_id
+          in: path
+          description: ID of Post where to look for comments
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: sort
+          in: query
+          description: Sorting criteria (new, old, popular)
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                message: Post not found.
+        422:
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                message: Invalid sort criteria.
+  /posts/{post_id}/like:
+    post:
+      tags:
+        - posts
+      summary: Afegir un like a un post
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: ID del post al qual s'afegeix el like
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Like processat amb èxit
+          content:
+            application/json:
+              example:
+                message: Like processat amb èxit
+                post:
+                  id: 1
+                  title: Títol del post
+                  content: Contingut del post
+                  url: http://example.com
+                  community_id: 1
+                  likes: 1
+                  dislikes: 0
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Usuari no autenticat
+        '404':
+          description: Not found
+          content:
+            application/json:
+              example:
+                error: Not found
+      security:
+        - ApiKeyAuth: []
+  /posts/{post_id}/dislike:
+    post:
+      tags:
+        - posts
+      summary: Afegir un dislike a un post
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: ID del post al qual s'afegeix el dislike
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Dislike processat amb èxit
+          content:
+            application/json:
+              example:
+                message: Dislike processat amb èxit
+                post:
+                  id: 1
+                  title: Títol del post
+                  content: Contingut del post
+                  url: http://example.com
+                  community_id: 1
+                  likes: 0
+                  dislikes: 1
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Usuari no autenticat
+        '404':
+          description: Not found
+          content:
+            application/json:
+              example:
+                error: Not found
+      security:
+        - ApiKeyAuth: []
+  /posts/{post_id}/unlike:
+    post:
+      tags:
+        - posts
+      summary: Unlike a un post
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: ID del post
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Unlike processat amb èxit
+          content:
+            application/json:
+              example:
+                message: Unlike processat amb èxit
+                post:
+                  id: 1
+                  title: Títol del post
+                  content: Contingut del post
+                  url: http://example.com
+                  community_id: 1
+                  likes: 0
+                  dislikes: 1
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Usuari no autenticat
+        '404':
+          description: Not found
+          content:
+            application/json:
+              example:
+                error: Not found
+      security:
+        - ApiKeyAuth: [ ]
+  /user:
+    get:
+      tags:
+        - users
+      summary: Retrieves api token User
+      operationId: getApiUser
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+      security:
+        - ApiKeyAuth: []
+  /user/edit/info:
+    post:
+      tags:
+        - users
+      summary: Edit your user basic info
+      operationId: editUserInfo
+      requestBody:
+        description: Provide the edited info
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '201':
+          description: User edited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 'Error: Bad Request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error400'
+      security:
+        - ApiKeyAuth: [ ]
+  /user/edit/avatar:
+    post:
+      tags:
+        - users
+      summary: Edit your avatar
+      operationId: editUserAvatar
+      requestBody:
+        description: Provide the new avatar as an image
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+              required:
+                - avatar
+      responses:
+        '201':
+          description: User edited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 'Error: Bad Request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error400'
+      security:
+        - ApiKeyAuth: [ ]
+  /user/edit/banner:
+    post:
+      tags:
+        - users
+      summary: Edit your banner
+      operationId: editUserBanner
+      requestBody:
+        description: Provide the new banner as an image
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                banner:
+                  type: string
+                  format: binary
+              required:
+                - banner
+      responses:
+        '201':
+          description: User edited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: 'Error: Bad Request'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error400'
+      security:
+        - ApiKeyAuth: [ ]
+  /user/posts/{user_id}:
+    get:
+      tags:
+        - users
+      summary: Retrieve all Posts made by a User with user_id
+      description: Returns all Posts from User
+      operationId: getPostByUser
+      parameters:
+        - name: user_id
+          in: path
+          description: ID of User
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+  /user/comments/{user_id}:
+    get:
+      tags:
+        - users
+      summary: Retrieve all Comments made by a User with user_id
+      description: Returns all Comments from User
+      operationId: getCommentByUser
+      parameters:
+        - name: user_id
+          in: path
+          description: ID of User
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+  /user/savedPosts:
+    get:
+      tags:
+        - users
+      summary: Retrieves authenticated User saved Posts
+      operationId: getSavedPosts
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+      security:
+        - ApiKeyAuth: [ ]
+  /user/savedComments:
+    get:
+      tags:
+        - users
+      summary: Retrieves authenticated User saved Comments
+      operationId: getSavedComments
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+      security:
+        - ApiKeyAuth: [ ]
+  /communities:
+    get:
+      tags:
+        - communities
+      summary: Retrieves all the Communities
+      operationId: getAllCommunities
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Community'
+    post:
+      tags:
+        - communities
+      summary: Create a new community
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name from the community (optional)
+                image:
+                  type: string
+                  description: Valid url from the icon of the community
+                banner:
+                  type: string
+                  format: url
+                  description: Valid url from the banner of the community
+                idComm:
+                  type: string
+                  description: ID from the community
+      responses:
+        '200':
+          description: Community created succesfully
+          content:
+            application/json:
+              example:
+                message: Community created succesfully
+                post:
+                  id: 70
+                  name: ComunitatChefs
+                  image: /images/whiteVan.jpeg
+                  banner: /images/seat_ibiza_marronero.jpg
+                  idComm: ComunitatChefs
+        '422':
+          description: Format from attribute not valid
+          content:
+            application/json:
+              example:
+                errors:
+                  image: [ "Icon is not a valid image" ]
+                  banner: [ "Banner is not a valid image" ]
+                  idComm: [ 'A community needs an ID' ]
+        '409':
+          description: Community already exists with the same ID
+          content:
+            application/json:
+              example:
+                errors:
+                  idComm: [ 'Already exists a community with the same ID' ]
+  /communities/{community_id}:
+    get:
+      tags:
+        - communities
+      summary: Finds a Community by its ID
+      description: Returns a single Community
+      operationId: getCommunityById
+      parameters:
+        - name: community_id
+          in: path
+          description: ID of Community to return
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+  /communities/subscribe/{community_id}:
+    post:
+      tags:
+        - communities
+      summary: Subscribes to a community
+      description: Subscribes to the community identified by community_id
+      operationId: communitySubscribe
+      parameters:
+        - name: community_id
+          in: path
+          description: ID of the community to subscribe to
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successfully subscribed to the community.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community'
+        409:
+          description: 'Already subscribed to this community'
+          content:
+            application/json:
+              example:
+                message: 'Already subscribed to this community'
+        422:
+          description: 'Community ID does not exist or is incorrect'
+          content:
+            application/json:
+              example:
+                message: 'Community ID does not exist or is incorrect'
+      security:
+        - ApiKeyAuth: [ ]
+  /communities/unsubscribe/{community_id}:
+    post:
+      tags:
+        - communities
+      summary: Unsubscribes from a community
+      description: Unsubscribes from a community identified by community_id
+      operationId: communityUnsubscribe
+      parameters:
+        - name: community_id
+          in: path
+          description: ID of the community to unsubscribe from
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successfully unsubscribed from the community.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community'
+        409:
+          description: 'User is not subscribed to this community'
+          content:
+            application/json:
+              example:
+                message: 'User is not subscribed to this community'
+        422:
+          description: 'Community ID does not exist or is incorrect'
+          content:
+            application/json:
+              example:
+                message: 'Community ID does not exist or is incorrect'
+      security:
+        - ApiKeyAuth: [ ]
+  /communities/{community_id}/posts:
+    get:
+      tags:
+        - communities
+      summary: Get posts from a Community
+      description: Get all posts from a Community
+      operationId: communityPosts
+      parameters:
+        - name: community_id
+          in: path
+          description: ID of the community to show the posts from
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Posts shown correctly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community'
+        201:
+          description: 'No posts found for this community'
+          content:
+            application/json:
+              example:
+                message: 'No posts found for this community'
+        422:
+          description: 'Community ID does not exist or is incorrect'
+          content:
+            application/json:
+              example:
+                message: 'Community ID does not exist or is incorrect'
+  /communities/{community_id}/comments:
+    get:
+      tags:
+        - communities
+      summary: Get comments from a Community
+      description: Get all comments from a Community
+      operationId: communityComments
+      parameters:
+        - name: community_id
+          in: path
+          description: ID of the community to show the comments from
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Comments shown correctly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community'
+        201:
+          description: 'No comments found for this community'
+          content:
+            application/json:
+              example:
+                message: 'No comments found for this community'
+        422:
+          description: 'Community ID does not exist or is incorrect'
+          content:
+            application/json:
+              example:
+                message: 'Community ID does not exist or is incorrect'
+  /communities/subscribed/:
+    get:
+      tags:
+        - communities
+      summary: Get subscribed communities
+      description: Get all communities from which the user is subscribed to
+      operationId: communitySubscribed
+      responses:
+        200:
+          description: Communities shown correctly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community'
+        201:
+          description: 'You are not subscribed to any communities!'
+          content:
+            application/json:
+              example:
+                message: 'No comments found for this community'
+        422:
+          description: 'Error with auth from the user'
+          content:
+            application/json:
+              example:
+                message: 'Error with auth from the user'
+      security:
+        - ApiKeyAuth: [ ]
+  /comments:
+    get:
+      tags:
+        - comments
+      summary: Retrieves all the Comments
+      operationId: getAllComments
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+    post:
+      tags:
+        - comments
+      summary: Create a new comment
+      operationId: newComment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - post_id
+              properties:
+                content:
+                  type: string
+                  description: Content of the comment
+                post_id:
+                  type: integer
+                  example: 1
+                  description: ID of the original post
+                comment_id:
+                  type: integer
+                  example: 1
+                  description: ID of the parent comment, if this comment is in reply to another comment
+      responses:
+        '201':
+          description: Comment successfully created
+          content:
+            application/json:
+              example:
+                message: Comment successfully created
+                comment:
+                  content: example comment content
+                  post_id: 1
+                  comment_id: 14
+                  user_id: 1
+                  likes: 0
+                  dislikes: 0
+                  edited: 0
+        '401':
+          description: Authorization error
+          content:
+            application/json:
+              example:
+                errors:
+                  unauthorized: [ "Unauthorized." ]
+                  updated_at: "UTC timestamp"
+                  created_at: "UTC timestamp"
+                  id: 96
+        '422':
+          description: Invalid request data
+          content:
+            application/json:
+              example:
+                errors:
+                  content: [ "The comment must have non-empty content." ]
+                  post_id: [ "You must provide a valid post ID." ]
+                  incorrect_comment_id: [ "Parent comment not found." ]
+                  wrong_parent_comment_id: [ "The parent comment does not belong to this post." ]
+      security:
+        - ApiKeyAuth: []
+  /comments/{comment_id}/like:
+    post:
+      tags:
+        - comments
+      summary: Like a comment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to like
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Like added to the comment
+          content:
+            application/json:
+              example:
+                message: You now like this comment.
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Unauthorized
+        '422':
+          description: Invalid request data
+          content:
+            application/json:
+              example:
+                errors:
+                  comment: [ "Invalid comment ID." ]
+      security:
+        - ApiKeyAuth: [ ]
+
+  /comments/{comment_id}/dislike:
+    post:
+      tags:
+        - comments
+      summary: Dislike a comment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to dislike
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Dislike added to the comment
+          content:
+            application/json:
+              example:
+                message: You now dislike this comment.
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Unauthorized
+        '422':
+          description: Invalid request data
+          content:
+            application/json:
+              example:
+                errors:
+                  comment: [ "Invalid comment ID." ]
+      security:
+        - ApiKeyAuth: [ ]
+
+  /comments/{comment_id}/unlike:
+    post:
+      tags:
+        - comments
+      summary: Unlike a comment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to unlike
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Unlike added to the comment
+          content:
+            application/json:
+              example:
+                message: You now unlike this comment.
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Unauthorized
+        '422':
+          description: Invalid request data
+          content:
+            application/json:
+              example:
+                errors:
+                  comment: [ "Invalid comment ID." ]
+      security:
+        - ApiKeyAuth: [ ]
+
+  /comments/{comment_id}/save:
+    post:
+      tags:
+        - comments
+      summary: Save a comment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to save
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: Comment saved
+          content:
+            application/json:
+              example:
+                message: You have saved this comment.
+        '202':
+          description: Comment unsaved
+          content:
+            application/json:
+              example:
+                message: You have unsaved this comment.
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              example:
+                message: Comment not found.
+      security:
+        - ApiKeyAuth: [ ]
+
+  /comments/{comment_id}/unsave:
+    post:
+      tags:
+        - comments
+      summary: Unsave a comment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to unsave
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '202':
+          description: Comment unsaved
+          content:
+            application/json:
+              example:
+                message: You have unsaved this comment.
+        '401':
+          description: Usuari no autenticat
+          content:
+            application/json:
+              example:
+                error: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              example:
+                message: Comment not found.
+      security:
+        - ApiKeyAuth: [ ]
+
+  /comments/{comment_id}:
+    get:
+      tags:
+        - comments
+      summary: Finds a Comment by its ID
+      description: Returns a single Comment
+      operationId: getCommentById
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to return
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+    delete:
+      tags:
+        - comments
+      summary: Delete a Comment by its ID
+      description: Deletes the corresponding comment
+      operationId: deleteComment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              example:
+                message: Comment deleted successfully.
+        403:
+          description: User is not the author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error403'
+        404:
+          description: Comment not found
+          content:
+            application/json:
+              example:
+                message: Comment not found.
+      security:
+        - ApiKeyAuth: [ ]
+    put:
+      tags:
+        - comments
+      summary: Edit a comment
+      description: Given the comment ID, edit the content of a comment and flag the comment as edited.
+      operationId: editComment
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of Comment to return
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  description: New content of the comment
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              example:
+                message: Comment edited successfully.
+        403:
+          description: User is not the author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error403'
+        404:
+          description: Comment not found
+          content:
+            application/json:
+              example:
+                message: Comment not found.
+      security:
+        - ApiKeyAuth: [ ]
+
+  /comments/{comment_id}/replies:
+    get:
+      tags:
+        - comments
+      summary: See the replies to a Comment
+      description: Returns all Comments in reply to the Comment identified by comment_id
+      operationId: getCommentReplies
+      parameters:
+        - name: comment_id
+          in: path
+          description: ID of parent Comment
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        404:
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                message: Comment not found.
+
+  /cercador/posts/{cerca}:
+    get:
+      tags:
+        - cercador
+      summary: Find a Post containing a string in the title
+      description: Returns the results of the search
+      operationId: getPostByTitle
+      parameters:
+        - name: cerca
+          in: path
+          description: string of search
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+  /cercador/comments/{cerca}:
+    get:
+      tags:
+        - cercador
+      summary: Find a Comment containing a string in the content
+      description: Returns the results of the search
+      operationId: getCommentByContent
+      parameters:
+        - name: cerca
+          in: path
+          description: string of search
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '404':
+          description: 'Error: Not Found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                errorExample:
+                  $ref: '#/components/examples/error404'
+
+components:
+  schemas:
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        title:
+          type: string
+          example: 'My title'
+        content:
+          type: string
+          example: 'My content'
+        url:
+          type: string
+          example: 'My url'
+        comunity_id:
+          type: integer
+          format: int64
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        likes:
+          type: integer
+          format: int32
+        dislikes:
+          type: integer
+          format: int32
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: 'My name'
+        email:
+          type: string
+          example: 'name@email.com'
+        email_verified_at:
+          type: string
+          format: date-time
+        avatar:
+          type: string
+          example: 'images/user/placeholder/avatar.png'
+        external_id:
+          type: integer
+          format: int64
+          example: 1
+        external_auth:
+          type: integer
+          format: int32
+        banner:
+          type: string
+          example: 'images/user/placeholder/banner.png'
+        bio:
+          type: string
+          example: 'tinc gana'
+        data_reg:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Community:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: 'Community name'
+        image:
+          type: string
+          example: 'images/placeholder/image.png'
+        banner:
+          type: string
+          example: 'images/placeholder/banner.png'
+        idComm:
+          type: string
+          example: "1"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        content:
+          type: string
+          example: 'Content'
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        likes:
+          type: integer
+          format: int32
+        dislikes:
+          type: integer
+          format: int32
+        post_id:
+          type: integer
+          format: int64
+          example: 1
+        comment_id:
+          type: integer
+          format: int64
+          example: null
+        edited:
+          type: boolean
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          example: null
+    NewPost:
+      allOf:
+        - $ref: '#/components/schemas/NewPost'
+        - type: object
+          properties:
+            token:
+              type: string
+              example: '9656f8894781485f7e9e168584a17ec002ad77379a3e2b3ff4604b916d98c0a7'
+          required:
+            - token
+    ErrorResult:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Content is too long (maximum is 240 characters)'
+      required:
+        - message
+  examples:
+    error400:
+      value:
+        message: "Content is too long (maximum is 240 characters)"
+    error401:
+      value:
+        message: "You provided no token"
+    error403:
+      value:
+        message: "You provided an invalid token"
+    error404:
+      value:
+        message: "There is no component with that id"
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      name: Authorization
+      in: header

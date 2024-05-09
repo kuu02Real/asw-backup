@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.wrapper{
+    width: 100%;
+    position: relative;
+    padding-left: 5px;
+}
+
+.wrapper::before{
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 10px;
+    width: 2px;
+    height: 100%;
+    background-color: skyblue;
+}
+
+
+.toggle-input {
+    display: none;
+}
+
+.toggle-button {
+    cursor: pointer;
+    color: #000000;
+    text-decoration: underline;
+    display: inline-flex;
+    align-items: center;
+}
+
+.formulario-respuesta {
+    display: none;
+}
+
+.toggle-input:checked + .toggle-button + .formulario-respuesta {
+    display: block;
+}
+
+.w3-icon {
+    font-size: 1.2em; /* ajusta el tamaño según sea necesario */
+    margin-right: 5px; /* ajusta el espacio entre el ícono y el texto según sea necesario */
+}
